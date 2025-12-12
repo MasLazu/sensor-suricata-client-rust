@@ -1,0 +1,15 @@
+FROM rust:1.83-alpine as builder
+
+WORKDIR /usr/src/app
+COPY . .
+
+RUN apk add --no-cache musl-dev protobuf-dev
+RUN cargo build --release --target x86_64-unknown-linux-musl
+
+FROM alpine:latest
+
+WORKDIR /usr/local/bin
+
+COPY --from=builder /usr/src/app/target/x86_64-unknown-linux-musl/release/sensor-suricata-service-rust .
+
+CMD ["./sensor-suricata-service-rust"]
