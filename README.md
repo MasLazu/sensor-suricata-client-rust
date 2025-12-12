@@ -11,7 +11,8 @@ The following benchmarks were conducted using the `sensor-benchmark-tool` on the
 
 | Metric | Go Implementation | Rust Implementation | Improvement |
 |--------|-------------------|---------------------|-------------|
-| **Throughput** | ~25,000 events/sec | **~93,000 events/sec** | **~3.7x** |
+| **Throughput** | ~23,000 events/sec | **~85,000 events/sec** | **~3.7x** |
+| **Memory Usage** | ~423 MiB | **~65 MiB** | **~6.5x Lower** |
 | **Architecture** | Goroutine | OS Threads + Async Runtime (Tokio) | Better CPU Utilization |
 
 ## 🚀 Architecture
