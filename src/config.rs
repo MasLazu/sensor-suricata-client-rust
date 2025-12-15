@@ -9,6 +9,7 @@ pub struct ClientConfig {
     pub insecure: bool,
     pub interval: u64, // Duration in seconds
     pub sensor_id: String,
+    pub sensor_version: String,
     pub testing_mode: bool,
     pub max_clients: Option<usize>,
     pub max_message_size: usize,
@@ -25,6 +26,7 @@ impl ClientConfig {
             .set_default("insecure", true)?
             .set_default("interval", 1)?
             .set_default("sensor_id", "sensor1")?
+            .set_default("sensor_version", "unknown")?
             .set_default("testing_mode", false)?
             // max_clients default handled in main.rs
             .set_default("max_message_size", 100)?

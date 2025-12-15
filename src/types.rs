@@ -1,23 +1,46 @@
 use serde::{Deserialize, Serialize};
 
+fn default_sensor_version() -> String {
+    "unknown".to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Metadata {
     #[serde(rename = "sensor_id")]
     pub sensor_id: String,
     #[serde(rename = "sensor_version")]
+    #[serde(default = "default_sensor_version")]
     pub sensor_version: String,
     #[serde(rename = "sent_at")]
+    #[serde(default)]
     pub sent_at: i64,
     #[serde(rename = "hash_sha256")]
+    #[serde(default)]
     pub hash_sha256: String,
     #[serde(rename = "read_at")]
+    #[serde(default)]
     pub read_at: i64,
     #[serde(rename = "received_at")]
+    #[serde(default)]
     pub received_at: i64,
+}
+
+impl Default for Metadata {
+    fn default() -> Self {
+        Self {
+            sensor_id: "".to_string(),
+            sensor_version: default_sensor_version(),
+            sent_at: 0,
+            hash_sha256: "".to_string(),
+            read_at: 0,
+            received_at: 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SuricataAlert {
+    #[serde(default)]
     pub metadata: Metadata,
     pub timestamp: String,
     #[serde(rename = "flow_id")]

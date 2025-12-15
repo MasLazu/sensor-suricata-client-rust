@@ -36,6 +36,9 @@ struct Args {
     #[arg(long)]
     sensor_id: Option<String>,
 
+    #[arg(long)]
+    sensor_version: Option<String>,
+
     #[arg(short = 't', long)]
     testing_mode: Option<bool>,
 
@@ -74,6 +77,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     if let Some(sensor_id) = args.sensor_id {
         conf.sensor_id = sensor_id;
+    }
+    if let Some(sensor_version) = args.sensor_version {
+        conf.sensor_version = sensor_version;
     }
     if let Some(testing_mode) = args.testing_mode {
         conf.testing_mode = testing_mode;
@@ -172,10 +178,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let worker_rx = worker_rxs.remove(0); // Take ownership of one receiver
             let queue_ref = &queue;
             let sensor_id = conf.sensor_id.clone(); // Clone sensor_id for each worker
+            let sensor_version = conf.sensor_version.clone(); // Clone version for each worker
 
             s.spawn(move || {
                 info!("Worker {} started", i);
                 for line in worker_rx {
+                    let line_prefix: String = line.chars().take(200).collect();
+
                     // Deserialize JSON here using simd-json
                     // simd-json requires a mutable byte slice
                     let mut line_bytes = line.into_bytes();
@@ -184,7 +193,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     match alert_result {
                         Ok(mut alert) => {
+                            // In real Suricata EVE JSON, there may be no top-level `metadata`.
+                            // We treat it as internal/enrichment metadata and fill it here.
+                            let now = std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .unwrap_or_default()
+                                .as_secs() as i64;
+
+                            if alert.metadata.read_at == 0 {
+                                alert.metadata.read_at = now;
+                            }
+                            if alert.metadata.sent_at == 0 {
+                                alert.metadata.sent_at = now;
+                            }
+                            if alert.metadata.received_at == 0 {
+                                alert.metadata.received_at = now;
+                            }
+
+                            // Always override/ensure the configured sensor_id.
                             alert.metadata.sensor_id = sensor_id.clone();
+                            // Always override/ensure the configured sensor_version.
+                            alert.metadata.sensor_version = sensor_version.clone();
+
                             if let Some((mut event, metric)) =
                                 processor::convert_suricata_alert_to_sensor_event(&alert)
                             {
@@ -193,7 +223,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                         }
                         Err(e) => {
-                            error!("Worker {}: Failed to parse JSON: {}", i, e);
+                            error!(
+                                "Worker {}: Failed to parse JSON: {} | line_prefix={}",
+                                i, e, line_prefix
+                            );
                         }
                     }
                 }
